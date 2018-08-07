@@ -12,6 +12,7 @@
                     <header-view/>
                 </div>
                 <div class="contentPane">
+                    <router-view></router-view>
                 </div>
                 <div class="footerPane"></div>
             </div>
