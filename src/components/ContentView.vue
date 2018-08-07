@@ -5,16 +5,16 @@
         </div>
         <div class="contentContainer" v-if="loaded">
             <div class="navigatePane">
-                <NavigateView items="navigateItems"/>
+                <NavigateView :items="navigateItems"/>
             </div>
             <div class="rightPane">
                 <div class="headerPane">
                     <header-view/>
                 </div>
-                <div class="contentPane"></div>
+                <div class="contentPane">
+                </div>
                 <div class="footerPane"></div>
             </div>
-
         </div>
     </div>
 </template>
@@ -35,10 +35,15 @@ export default {
         }
     },
     mounted () {
-        Navigation.getItems().then((items) => {
-            this.navigateItems = items
-            this.loaded = true
-        })
+        this.initNavigateItems()
+    },
+    methods: {
+        initNavigateItems () {
+            Navigation.getItems().then((items) => {
+                this.navigateItems = items
+                this.loaded = true
+            })
+        }
     }
 }
 </script>
