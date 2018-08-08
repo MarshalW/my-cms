@@ -88,7 +88,7 @@ export default {
     }
 
     .contentPane {
-        background-color: burlywood;
+        background-color: gainsboro;
         flex-grow: 1;
     }
 
