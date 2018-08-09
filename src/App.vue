@@ -23,7 +23,6 @@ export default {
             this.$context.auth = this.auth
         },
         handleLogout: function () {
-            console.log('logout ok')
             this.auth = null
             this.$context.auth = this.auth
         }

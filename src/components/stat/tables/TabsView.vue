@@ -4,7 +4,9 @@
         <div>
             <ul class="tabs">
                 <li v-for="(tab,index) in tabs">
-                    <button @click="handleClickTab(index)">{{tab}}</button>
+                    <SimpleTabView :key="index+tab[0]" :index="index" @handleClickTab="handleClickTab"
+                                   @handleRemoveTab="handleRemoveTab" :args="tab"
+                    />
                 </li>
             </ul>
         </div>
@@ -15,7 +17,9 @@
             </div>
             <div v-if="currentTabResults==null">Loading..</div>
             <div v-if="currentTabResults">
-                <component :is="getTableComponentByType(tabs[this.tabsMap.get('currentIndex') || 0])"/>
+                <component :is="getTableComponentByType(getTabType(tabs[this.currentIndex]))"
+                           :results="currentTabResults" :args="tabs[this.currentIndex]"
+                           @insert="handleInsertTab"/>
             </div>
         </div>
     </div>
@@ -23,77 +27,160 @@
 
 <script>
 import Stat from '../../../api/Stat'
+import TableTypes from './TableTypes'
 
-import ResultsTableView from './ResultsTableView'
-import DepartmentTableView from './DepartmentTableView'
-import SectionTableView from './SecctionTableView'
-import TopArticlesTableView from './TopArticlesTableView'
-import ArticleTableView from './ArticleTableView'
+import SimpleTabView from './SimpleTabView'
 
-const tableTypeMap = new Map()
-tableTypeMap.set('搜索结果', ResultsTableView)
-tableTypeMap.set('部门列表', DepartmentTableView)
-tableTypeMap.set('栏目列表', SectionTableView)
-tableTypeMap.set('文章Top列表', TopArticlesTableView)
+let typeMap = TableTypes.TYPE_MAP
 
-const defaultTabs = ['搜索结果', '部门列表', '栏目列表', '文章Top列表']
-
+const initTabs = [['R', , , ,], ['D', , , ,], ['S', , , ,], ['T', , , ,]]
 
 export default {
     name: "TabsView",
     props: ['id', 'params', 't'],
-    components: {ResultsTableView, DepartmentTableView, SectionTableView, TopArticlesTableView, ArticleTableView},
+    components: {
+        ...TableTypes.COMPONENTS,
+        SimpleTabView
+    },
     data () {
         return {
             tabs: [],
-            currentTabResults: null,
-            tabsMap: new Map()
+            currentIndex: 0,
+            currentTabResults: null
         }
     },
     computed: {},
     methods: {
-        currentIndex () {
-            return this.tabsMap.get('currentIndex') || 0
-        },
-        handleClickTab (index) {
-            this.tabsMap.set('currentIndex', index)
-
+        pushRouter () {
             let currentRoute = this.$router.currentRoute
             this.$router.push({
                 path: currentRoute.path,
-                query: {...currentRoute.query, c: JSON.stringify([...this.tabsMap])}
+                query: {...currentRoute.query, c: JSON.stringify([this.currentIndex, this.tabs])}
             })
+        },
+        handleRemoveTab (index) {
+            let tabs = [...this.tabs]
+            tabs.splice(index, 1)
+            this.tabs = tabs
+
+            // 防止删除时超过数组最后一个
+            if (this.currentIndex >= this.tabs.length) {
+                this.currentIndex--
+            }
+
+            this.pushRouter()
+        },
+        handleInsertTab (params) {
+            let {type, id} = params
+            let args = [type, , , id]
+            let tabs = [...this.tabs]
+            this.currentIndex = this.currentIndex + 1
+            tabs.splice(this.currentIndex, 0, args)
+            this.tabs = tabs
+            this.pushRouter()
+        },
+        handleClickTab (index) {
+            this.currentIndex = index
             this.currentTabResults = null
+
             Stat.getTabResults().then((results) => {
                 this.currentTabResults = results
             })
-        },
-        initDefaultTabs () {
-            this.currentTabResults = null
-            this.tabs = defaultTabs
-            this.tabsMap.set('currentIndex', 0)
 
-            if (this.$route.query.c) {
-                this.tabsMap = new Map(JSON.parse(this.$route.query.c))
-            }
+            this.pushRouter()
+        },
+        initTabs (params) {
+            let [tabs, currentIndex] = params
+
+            this.currentIndex = currentIndex
+            this.currentTabResults = null
+
+            this.tabs = tabs
 
             Stat.getTabResults().then((results) => {
                 this.currentTabResults = results
             })
         },
         getTableComponentByType (type) {
-            return tableTypeMap.get(type)
+            return typeMap.get(type)[0]
+        },
+        getTabType (tab) {
+            if (Array.isArray(tab)) {
+                return tab[0]
+            }
+            return tab
+        },
+        getDefaultNavigateTabs () {
+            this.initTabs([this.getBlankTabsWithoutResultsTable(), 0])
+        },
+        getBlankTabsWithoutResultsTable () {
+            if (this.id == 'n1') { // 当是部门的情况下
+                return [['D', , , ,], ['S', , , ,], ['T', , , ,]]
+            } else { // 当是栏目的情况下
+                return [['S', , , ,], ['T', , , ,]]
+            }
+        },
+        getUrlQueryParamsTabs () {
+            //默认配置
+            let tabs = this.getBlankTabsWithoutResultsTable()
+            let currentIndex = 0
+
+            //有tabs参数的情况
+            if (this.$route.query.c) {
+                let [, _tabs] = JSON.parse(this.$route.query.c)
+                tabs = _tabs
+            }
+
+            // 如果没有关键字搜索，没有用搜索结果表
+            if (!this.params.get('keyword') || this.params.get('keyword').length == 0) {
+                let tabType = tabs[0][0]
+                if (tabType == 'R') {
+                    tabs.splice(0, 1) //删除搜索结果
+                }
+
+                if (this.$route.query.c) {
+                    let [index,] = JSON.parse(this.$route.query.c)
+                    currentIndex = index
+                }
+            } else {
+                let tabType = tabs[0][0]
+                if (tabType != 'R') {
+                    tabs = [['R'], ...tabs]
+                }
+            }
+
+            // // 如果没有关键字搜索，没有用搜索结果表
+            // if (!this.params.get('keyword') || this.params.get('keyword').length == 0) {
+            //     let tabType = tabs[0][0]
+            //     if (tabType == 'R') {
+            //         tabs.splice(0, 1)
+            //     }
+            //
+            //     if (this.$route.query.c) {
+            //         let [index,] = JSON.parse(this.$route.query.c)
+            //         currentIndex = index
+            //     }
+            // }
+
+            this.initTabs([tabs, currentIndex])
+        },
+        isEmptyParams () {
+            return this.$route.query.q == null
         }
     },
     mounted () {
-        this.initDefaultTabs()
+        if (this.isEmptyParams()) {
+            this.getDefaultNavigateTabs()
+        } else {
+            this.getUrlQueryParamsTabs()
+        }
     },
     watch: {
         'id': function () {
-            this.initDefaultTabs()
+            this.getDefaultNavigateTabs()
         },
         't': function () {
-            this.initDefaultTabs()
+            this.getUrlQueryParamsTabs()
         }
     }
 }
