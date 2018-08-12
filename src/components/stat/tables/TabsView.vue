@@ -149,19 +149,6 @@ export default {
                 }
             }
 
-            // // 如果没有关键字搜索，没有用搜索结果表
-            // if (!this.params.get('keyword') || this.params.get('keyword').length == 0) {
-            //     let tabType = tabs[0][0]
-            //     if (tabType == 'R') {
-            //         tabs.splice(0, 1)
-            //     }
-            //
-            //     if (this.$route.query.c) {
-            //         let [index,] = JSON.parse(this.$route.query.c)
-            //         currentIndex = index
-            //     }
-            // }
-
             this.initTabs([tabs, currentIndex])
         },
         isEmptyParams () {

@@ -33,8 +33,10 @@ export default {
             bigNumberResults: null
         }
     },
-    mounted () {
+    beforeMount () {
         this.params = this.getParams()
+    },
+    mounted () {
         this.getBigNumberResults()
     },
     methods: {
