@@ -12,6 +12,7 @@
         </div>
         <div class="tableView">
             <div class="notShow">
+                <!-- 目的是当id和t改变后，会render当前的view，否则当前视图不会改变，也许这不是最佳实践 -->
                 <div>{{id}}</div>
                 <div>{{t}}</div>
             </div>
@@ -33,6 +34,10 @@ import SimpleTabView from './SimpleTabView'
 
 let typeMap = TableTypes.TYPE_MAP
 
+// 默认的tab结构，[type,pages,sort,params]，比如['R',[20,2],[2,true],,]
+// type为字符，pages=[分页大小, 当前页号]，sort=【排序的列下标，是否降序]
+// 一般tab的params为空，动态tab可能有params，比如选择的子tab，以及子tab的pages和sort参数
+// 表的type，见TableTypes.js
 const initTabs = [['R', , , ,], ['D', , , ,], ['S', , , ,], ['T', , , ,]]
 
 export default {

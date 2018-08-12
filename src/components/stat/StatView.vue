@@ -40,6 +40,7 @@ export default {
         this.getBigNumberResults()
     },
     methods: {
+        // 获取查询参数Map
         getParams () {
             let map = new Map()
             map.set('keyword', '')
@@ -50,12 +51,14 @@ export default {
             }
             return map
         },
+        // 获取大数字区的数据结果
         getBigNumberResults () {
             this.bigNumberResults = null
             Stat.getBigNumberResults().then((results) => {
                 this.bigNumberResults = results
             })
         },
+        // 处理查询，点击查询按钮时
         handleQuery (params) {
             this.params.set('keyword', params.keyword)
             let currentRoute = this.$router.currentRoute
@@ -65,6 +68,7 @@ export default {
                 query: {...currentRoute.query, q: JSON.stringify([...this.params]), t: Date.now()}
             })
         },
+        // 处理选择条件
         handleSelect (type) {
             if (!type || this.openSelected == type) {
                 this.openSelected = null
@@ -72,6 +76,7 @@ export default {
                 this.openSelected = type
             }
         },
+        // 处理查询参数的设置
         handleSet (params) {
             if (params.type) {
                 let map = new Map(JSON.parse(JSON.stringify([...this.params])))
@@ -81,11 +86,13 @@ export default {
         }
     },
     watch: {
+        // 当t改变时说明有查询请求发生（如点击查询按钮）
         '$route.query.t': function () {
             this.params = this.getParams()
             this.getBigNumberResults()
             this.openSelected = null
         },
+        // 当id变化，说明选择了不同的导航条目
         '$route.params.id': function () {
             this.getBigNumberResults()
             this.openSelected = null
