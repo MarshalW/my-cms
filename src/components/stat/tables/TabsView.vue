@@ -16,18 +16,16 @@
                 <div>{{id}}</div>
                 <div>{{t}}</div>
             </div>
-            <div v-if="currentTabResults==null">Loading..</div>
-            <div v-if="currentTabResults">
+            <div v-if="tabDisplay">
                 <component :is="getTableComponentByType(getTabType(tabs[this.currentIndex]))"
-                           :results="currentTabResults" :args="tabs[this.currentIndex]"
-                           @insert="handleInsertTab"/>
+                           :args="tabs[this.currentIndex]" :index="this.currentIndex"
+                           @insert="handleInsertTab" @change="handleParamsChange"/>
             </div>
         </div>
     </div>
 </template>
 
 <script>
-import Stat from '../../../api/Stat'
 import TableTypes from './TableTypes'
 
 import SimpleTabView from './SimpleTabView'
@@ -51,7 +49,7 @@ export default {
         return {
             tabs: [],
             currentIndex: 0,
-            currentTabResults: null
+            tabDisplay: true // 防止动态tab之间切换不刷新，也许有更好的办法
         }
     },
     computed: {},
@@ -63,13 +61,19 @@ export default {
                 query: {...currentRoute.query, c: JSON.stringify([this.currentIndex, this.tabs])}
             })
         },
+        handleParamsChange (params) {
+            let tabs = [...this.tabs]
+            tabs[params.index] = params.params
+            this.tabs = tabs
+
+            this.pushRouter()
+        },
         handleRemoveTab (index) {
             let tabs = [...this.tabs]
             tabs.splice(index, 1)
             this.tabs = tabs
 
-            // 防止删除时超过数组最后一个
-            if (this.currentIndex >= this.tabs.length) {
+            if (this.currentIndex > 0) {
                 this.currentIndex--
             }
 
@@ -77,7 +81,7 @@ export default {
         },
         handleInsertTab (params) {
             let {type, id} = params
-            let args = [type, , , id]
+            let args = [type, , , [id, ,]]
             let tabs = [...this.tabs]
             this.currentIndex = this.currentIndex + 1
             tabs.splice(this.currentIndex, 0, args)
@@ -85,26 +89,19 @@ export default {
             this.pushRouter()
         },
         handleClickTab (index) {
-            this.currentIndex = index
-            this.currentTabResults = null
+            this.tabDisplay = false
+            setTimeout(() => {
+                this.currentIndex = index
+                this.pushRouter()
+                this.tabDisplay = true
+            }, 0)
 
-            Stat.getTabResults().then((results) => {
-                this.currentTabResults = results
-            })
-
-            this.pushRouter()
         },
         initTabs (params) {
             let [tabs, currentIndex] = params
 
             this.currentIndex = currentIndex
-            this.currentTabResults = null
-
             this.tabs = tabs
-
-            Stat.getTabResults().then((results) => {
-                this.currentTabResults = results
-            })
         },
         getTableComponentByType (type) {
             return typeMap.get(type)[0]
@@ -116,7 +113,14 @@ export default {
             return tab
         },
         getDefaultNavigateTabs () {
-            this.initTabs([this.getBlankTabsWithoutResultsTable(), 0])
+            let currentIndex = 0
+
+            //有tabs参数的情况
+            if (this.$route.query.c) {
+                [currentIndex,] = JSON.parse(this.$route.query.c)
+            }
+
+            this.initTabs([this.getBlankTabsWithoutResultsTable(), currentIndex])
         },
         getBlankTabsWithoutResultsTable () {
             if (this.id == 'n1') { // 当是部门的情况下
@@ -125,15 +129,14 @@ export default {
                 return [['S', , , ,], ['T', , , ,]]
             }
         },
-        getUrlQueryParamsTabs () {
+        getUrlQueryParamsTabs (chooseResultsTab = false) { //TODO 这部分逻辑很乱，需要重构
             //默认配置
             let tabs = this.getBlankTabsWithoutResultsTable()
             let currentIndex = 0
 
             //有tabs参数的情况
             if (this.$route.query.c) {
-                let [, _tabs] = JSON.parse(this.$route.query.c)
-                tabs = _tabs
+                [currentIndex, tabs] = JSON.parse(this.$route.query.c)
             }
 
             // 如果没有关键字搜索，没有用搜索结果表
@@ -150,8 +153,12 @@ export default {
             } else {
                 let tabType = tabs[0][0]
                 if (tabType != 'R') {
-                    tabs = [['R'], ...tabs]
+                    tabs = [['R', , , ,], ...tabs]
                 }
+            }
+
+            if (chooseResultsTab) {
+                currentIndex = 0
             }
 
             this.initTabs([tabs, currentIndex])
@@ -160,10 +167,11 @@ export default {
             return this.$route.query.q == null
         }
     },
-    mounted () {
+    beforeMount () {
         if (this.isEmptyParams()) {
             this.getDefaultNavigateTabs()
         } else {
+            console.log('refresh page===>')
             this.getUrlQueryParamsTabs()
         }
     },
@@ -172,7 +180,12 @@ export default {
             this.getDefaultNavigateTabs()
         },
         't': function () {
-            this.getUrlQueryParamsTabs()
+            this.tabDisplay = false
+            setTimeout(() => {
+                this.getUrlQueryParamsTabs(true)
+                this.tabDisplay = true
+            }, 0)
+
         }
     }
 }

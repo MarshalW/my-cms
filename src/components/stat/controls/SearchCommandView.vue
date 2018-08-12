@@ -4,6 +4,7 @@
         <button @click="handleSelect('releaseSide')">发布端</button>
         <input v-model="value"/>
         <button @click="handleQuery">查询</button>
+        <button @click="handleClear">清空</button>
     </div>
 </template>
 
@@ -17,6 +18,10 @@ export default {
         }
     },
     methods: {
+        handleClear () {
+            this.value = ''
+            this.$emit('clear')
+        },
         handleQuery () {
             this.$emit('query', {keyword: this.value})
         },

@@ -1,7 +1,7 @@
 <template>
     <div class="statView">
         <div class="controlsPane">
-            <SearchCommandView :id="$route.params.id" @query="handleQuery" @select="handleSelect"
+            <SearchCommandView :id="$route.params.id" @query="handleQuery" @select="handleSelect" @clear="handleClear"
                                :keyword="this.params.get('keyword')"/>
             <ReleaseSideCheckboxView v-if="openSelected=='releaseSide'" :checked="params.get('releaseSide')"
                                      @select="handleSelect" @set="handleSet"/>
@@ -56,6 +56,19 @@ export default {
             this.bigNumberResults = null
             Stat.getBigNumberResults().then((results) => {
                 this.bigNumberResults = results
+            })
+        },
+        handleClear () {
+            let map = new Map()
+            map.set('keyword', '')
+            map.set('releaseSide', [])
+
+
+            let currentRoute = this.$router.currentRoute
+
+            this.$router.push({
+                path: `/stat/${this.$route.params.id}`,
+                query: {...currentRoute.query, q: JSON.stringify([...map]), t: Date.now(), c: null}
             })
         },
         // 处理查询，点击查询按钮时
